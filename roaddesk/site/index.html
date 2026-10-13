@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoadDesk | Report road problems to your municipality</title>
+<meta name="description" content="Report a damaged road with a photo, a map pin and a severity level. Municipal staff review each report and track it until it is repaired.">
+<link rel="canonical" href="https://YOURDOMAIN.in/index.html">
+<meta name="theme-color" content="#12161b">
+<link rel="icon" href="/images/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/images/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="RoadDesk">
+<meta property="og:title" content="RoadDesk | Report road problems to your municipality">
+<meta property="og:description" content="Report a damaged road with a photo, a map pin and a severity level. Municipal staff review each report and track it until it is repaired.">
+<meta property="og:url" content="https://YOURDOMAIN.in/index.html">
+<meta property="og:image" content="https://YOURDOMAIN.in/images/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="RoadDesk: road issue reporting for municipalities">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="/index.html"><span class="brand-mark" aria-hidden="true"></span><span>RoadDesk</span></a>
+    <nav aria-label="Main">
+      <ul class="nav-list">
+        <li><a href="/report.html">Report an issue</a></li>
+        <li data-show="user" hidden><a href="/my-reports.html">My reports</a></li>
+        <li data-show="admin" hidden><a href="/admin/index.html">Staff area</a></li>
+        <li data-show="guest" hidden><a href="/login.html">Log in</a></li>
+        <li data-show="guest" hidden><a href="/register.html">Create account</a></li>
+        <li data-show="user" hidden><button type="button" class="link-btn" id="logout-btn">Log out</button></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<noscript><p class="msg error container">RoadDesk needs JavaScript to log you in and show reports. Turn JavaScript on and reload the page.</p></noscript>
+<main id="main">
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="glass hero-main">
+      <h1>Report a damaged road and follow the repair</h1>
+      <p>Mark the exact spot on a map, add a photo and choose how severe the damage is. Municipal staff see every report in one queue and update its status until the work is done.</p>
+      <div class="btn-row">
+        <a class="btn btn-primary" href="/report.html">Report a road issue</a>
+      </div>
+      <p class="hint" style="margin-top:1rem">You need a free account so staff can follow up with you.</p>
+    </div>
+    <aside class="glass hero-side" aria-label="What each report includes">
+      <h2>What a report includes</h2>
+      <ul>
+        <li><strong>A pin on the map</strong><span>Placed by clicking the map or using your phone location.</span></li>
+        <li><strong>A severity level</strong><span>From low to critical, so urgent hazards are seen first.</span></li>
+        <li><strong>A photo</strong><span>Optional, shrunk on your device before it is uploaded.</span></li>
+        <li><strong>A short description</strong><span>What is wrong and any landmark nearby.</span></li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li class="glass"><h3>Report</h3><p>Choose the type of problem, place the pin and add a photo and description.</p></li>
+      <li class="glass"><h3>Review</h3><p>Municipal staff verify the report, adjust the severity and assign it for repair.</p></li>
+      <li class="glass"><h3>Track</h3><p>Each report in your account shows its current status and a history of changes.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2>How severity is chosen</h2>
+    <p class="muted">You suggest a level when you report. Staff can change it after checking the location.</p>
+    <dl class="sev-list">
+      <div class="glass"><dt><span class="badge sev-low"><span class="dot" aria-hidden="true"></span>Low</span></dt><dd>Surface wear that does not affect safe travel, such as a hairline crack.</dd></div>
+      <div class="glass"><dt><span class="badge sev-medium"><span class="dot" aria-hidden="true"></span>Medium</span></dt><dd>Damage that is easy to notice and may get worse, such as a shallow pothole.</dd></div>
+      <div class="glass"><dt><span class="badge sev-high"><span class="dot" aria-hidden="true"></span>High</span></dt><dd>Damage that can harm vehicles or riders, such as a deep pothole on a busy road.</dd></div>
+      <div class="glass"><dt><span class="badge sev-critical"><span class="dot" aria-hidden="true"></span>Critical</span></dt><dd>Immediate danger, such as an open manhole or a collapsed road edge. If someone is at risk right now, call the emergency number (112 in India) first.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="glass panel">
+      <h2>For municipal staff</h2>
+      <p>Staff accounts are created by the platform administrator. Once signed in, staff can:</p>
+      <ul class="checks">
+        <li>Work from one queue, filtered by severity, status and category.</li>
+        <li>See all open reports on a map and open any report from its pin.</li>
+        <li>Verify, assign and resolve reports, with every change recorded in a history.</li>
+        <li>View counts by status, severity, category and month.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p>&copy; 2026 {{OPERATOR_NAME}}</p>
+    <ul>
+      <li><a href="/privacy.html">Privacy policy</a></li>
+      <li><a href="/terms.html">Terms and conditions</a></li>
+      <li><button type="button" class="link-btn" id="cookie-settings">Cookie settings</button></li>
+      <li><a href="mailto:{{CONTACT_EMAIL}}">Contact</a></li>
+    </ul>
+  </div>
+</footer>
+<script src="/vendor/supabase.js" defer></script>
+<script src="/js/config.js" defer></script>
+<script src="/js/common.js" defer></script>
+<script src="/js/consent.js" defer></script>
+</body>
+</html>

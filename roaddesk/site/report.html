@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Report a road issue | RoadDesk</title>
+<meta name="description" content="Report a pothole, crack, waterlogging or other road damage. Add a map pin, a photo and a severity level.">
+<link rel="canonical" href="https://YOURDOMAIN.in/report.html">
+<meta name="theme-color" content="#12161b">
+<link rel="icon" href="/images/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/images/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="RoadDesk">
+<meta property="og:title" content="Report a road issue | RoadDesk">
+<meta property="og:description" content="Report a pothole, crack, waterlogging or other road damage. Add a map pin, a photo and a severity level.">
+<meta property="og:url" content="https://YOURDOMAIN.in/report.html">
+<meta property="og:image" content="https://YOURDOMAIN.in/images/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="RoadDesk: road issue reporting for municipalities">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+</head>
+<body class="gated">
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="/index.html"><span class="brand-mark" aria-hidden="true"></span><span>RoadDesk</span></a>
+    <nav aria-label="Main">
+      <ul class="nav-list">
+        <li><a href="/report.html">Report an issue</a></li>
+        <li data-show="user" hidden><a href="/my-reports.html">My reports</a></li>
+        <li data-show="admin" hidden><a href="/admin/index.html">Staff area</a></li>
+        <li data-show="guest" hidden><a href="/login.html">Log in</a></li>
+        <li data-show="guest" hidden><a href="/register.html">Create account</a></li>
+        <li data-show="user" hidden><button type="button" class="link-btn" id="logout-btn">Log out</button></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<noscript><p class="msg error container">RoadDesk needs JavaScript to log you in and show reports. Turn JavaScript on and reload the page.</p></noscript>
+<main id="main">
+<div class="container section">
+  <h1>Report a road issue</h1>
+  <p class="msg" style="border-color:var(--amber)">If someone is in immediate danger, call the emergency number (112 in India) before using this form.</p>
+  <div class="report-grid" style="margin-top:1.25rem">
+    <form id="report-form" class="glass panel form" novalidate>
+      <div class="field"><label for="title">Title</label><input id="title" name="title" type="text" maxlength="120" required><p class="hint">Say what and where, for example "Deep pothole outside the post office".</p></div>
+      <div class="field"><label for="category">Type of problem</label>
+        <select id="category" name="category" required><option value="">Choose a type</option>
+<option value="pothole">Pothole</option>
+<option value="crack">Crack or surface damage</option>
+<option value="waterlogging">Waterlogging</option>
+<option value="missing_cover">Missing manhole or drain cover</option>
+<option value="damaged_divider">Damaged divider</option>
+<option value="signage">Damaged or missing signage</option>
+<option value="other">Other</option>
+        </select></div>
+      <fieldset>
+        <legend>Severity</legend>
+        <div class="choice-grid">
+          <label class="choice"><input type="radio" name="severity" value="low"><strong>Low</strong><small>Minor wear, safe to drive</small></label>
+          <label class="choice"><input type="radio" name="severity" value="medium"><strong>Medium</strong><small>Noticeable, may get worse</small></label>
+          <label class="choice"><input type="radio" name="severity" value="high"><strong>High</strong><small>Can damage vehicles or hurt riders</small></label>
+          <label class="choice"><input type="radio" name="severity" value="critical"><strong>Critical</strong><small>Immediate danger</small></label>
+        </div>
+      </fieldset>
+      <div class="field"><label for="description">Description (optional)</label><textarea id="description" name="description" maxlength="2000"></textarea></div>
+      <div class="field"><label for="address">Street or landmark (optional)</label><input id="address" name="address" type="text" maxlength="300"></div>
+      <div class="field"><label for="photo">Photo (optional)</label><input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp"><p class="hint">JPEG, PNG or WebP. The photo is shrunk on your device before upload. Avoid showing people or number plates.</p>
+        <img id="photo-preview" class="preview" alt="Preview of the selected photo" hidden></div>
+      <input type="hidden" name="latitude"><input type="hidden" name="longitude">
+      <div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+      <p id="form-msg" class="msg" role="alert" tabindex="-1" hidden></p>
+      <div class="btn-row"><button type="submit" class="btn btn-primary">Submit report</button><a class="btn btn-secondary" href="/my-reports.html" data-show="user" hidden>View my reports</a></div>
+    </form>
+    <section class="glass panel" aria-labelledby="loc-h">
+      <h2 id="loc-h">Location</h2>
+      <p class="muted">Click the map to place the pin, or use your current location. Zoom in for accuracy.</p>
+      <p><button type="button" class="btn btn-secondary" id="gps-btn">Use my current location</button></p>
+      <div id="map" class="map" role="application" aria-label="Map for placing the report pin"></div>
+      <p id="coord-text" class="hint" aria-live="polite" style="margin-top:0.6rem">No pin placed yet.</p>
+    </section>
+  </div>
+</div>
+</main>
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p>&copy; 2026 {{OPERATOR_NAME}}</p>
+    <ul>
+      <li><a href="/privacy.html">Privacy policy</a></li>
+      <li><a href="/terms.html">Terms and conditions</a></li>
+      <li><button type="button" class="link-btn" id="cookie-settings">Cookie settings</button></li>
+      <li><a href="mailto:{{CONTACT_EMAIL}}">Contact</a></li>
+    </ul>
+  </div>
+</footer>
+<script src="/vendor/supabase.js" defer></script>
+<script src="/js/config.js" defer></script>
+<script src="/vendor/leaflet/leaflet.js" defer></script>
+<script src="/js/common.js" defer></script>
+<script src="/js/consent.js" defer></script>
+<script src="/js/report.js" defer></script>
+</body>
+</html>

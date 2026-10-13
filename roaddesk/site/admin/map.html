@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Report map | RoadDesk staff</title>
+<meta name="description" content="All road issue reports on a map, coloured by severity.">
+<link rel="canonical" href="https://YOURDOMAIN.in/admin/map.html">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#12161b">
+<link rel="icon" href="/images/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/images/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="RoadDesk">
+<meta property="og:title" content="Report map | RoadDesk staff">
+<meta property="og:description" content="All road issue reports on a map, coloured by severity.">
+<meta property="og:url" content="https://YOURDOMAIN.in/admin/map.html">
+<meta property="og:image" content="https://YOURDOMAIN.in/images/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="RoadDesk: road issue reporting for municipalities">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+</head>
+<body class="gated">
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="/index.html"><span class="brand-mark" aria-hidden="true"></span><span>RoadDesk</span></a>
+    <nav aria-label="Main">
+      <ul class="nav-list">
+        <li><a href="/report.html">Report an issue</a></li>
+        <li data-show="user" hidden><a href="/my-reports.html">My reports</a></li>
+        <li data-show="admin" hidden><a href="/admin/index.html">Staff area</a></li>
+        <li data-show="guest" hidden><a href="/login.html">Log in</a></li>
+        <li data-show="guest" hidden><a href="/register.html">Create account</a></li>
+        <li data-show="user" hidden><button type="button" class="link-btn" id="logout-btn">Log out</button></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<noscript><p class="msg error container">RoadDesk needs JavaScript to log you in and show reports. Turn JavaScript on and reload the page.</p></noscript>
+<main id="main">
+<div class="container section">
+  <h1>Report map</h1>
+  <nav class="subnav" aria-label="Staff area"><a href="/admin/index.html">Dashboard</a><a href="/admin/reports.html">All reports</a><a href="/admin/map.html" aria-current="page">Map</a></nav>
+  <div class="glass panel">
+    <div class="filters"><div class="field"><label for="f-status">Show</label><select id="f-status"></select></div></div>
+    <div id="legend" class="legend"></div>
+    <p id="result-info" class="muted" aria-live="polite">Loading</p>
+    <div id="map" class="map map-tall" role="application" aria-label="Map of reports"></div>
+  </div>
+</div>
+</main>
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p>&copy; 2026 {{OPERATOR_NAME}}</p>
+    <ul>
+      <li><a href="/privacy.html">Privacy policy</a></li>
+      <li><a href="/terms.html">Terms and conditions</a></li>
+      <li><button type="button" class="link-btn" id="cookie-settings">Cookie settings</button></li>
+      <li><a href="mailto:{{CONTACT_EMAIL}}">Contact</a></li>
+    </ul>
+  </div>
+</footer>
+<script src="/vendor/supabase.js" defer></script>
+<script src="/js/config.js" defer></script>
+<script src="/vendor/leaflet/leaflet.js" defer></script>
+<script src="/js/common.js" defer></script>
+<script src="/js/consent.js" defer></script>
+<script src="/js/admin-map.js" defer></script>
+</body>
+</html>

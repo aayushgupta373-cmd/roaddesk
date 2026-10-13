@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log in | RoadDesk</title>
+<meta name="description" content="Log in to report road issues and follow the status of your reports.">
+<link rel="canonical" href="https://YOURDOMAIN.in/login.html">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#12161b">
+<link rel="icon" href="/images/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/images/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="RoadDesk">
+<meta property="og:title" content="Log in | RoadDesk">
+<meta property="og:description" content="Log in to report road issues and follow the status of your reports.">
+<meta property="og:url" content="https://YOURDOMAIN.in/login.html">
+<meta property="og:image" content="https://YOURDOMAIN.in/images/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="RoadDesk: road issue reporting for municipalities">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="/index.html"><span class="brand-mark" aria-hidden="true"></span><span>RoadDesk</span></a>
+    <nav aria-label="Main">
+      <ul class="nav-list">
+        <li><a href="/report.html">Report an issue</a></li>
+        <li data-show="user" hidden><a href="/my-reports.html">My reports</a></li>
+        <li data-show="admin" hidden><a href="/admin/index.html">Staff area</a></li>
+        <li data-show="guest" hidden><a href="/login.html">Log in</a></li>
+        <li data-show="guest" hidden><a href="/register.html">Create account</a></li>
+        <li data-show="user" hidden><button type="button" class="link-btn" id="logout-btn">Log out</button></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<noscript><p class="msg error container">RoadDesk needs JavaScript to log you in and show reports. Turn JavaScript on and reload the page.</p></noscript>
+<main id="main">
+<div class="container">
+  <div class="auth-wrap glass panel">
+    <h1>Log in</h1>
+    <form id="login-form" class="form" novalidate>
+      <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" required></div>
+      <div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="72" required></div>
+      <div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+      <div id="captcha"></div>
+      <p id="form-msg" class="msg" role="alert" hidden></p>
+      <button type="submit" class="btn btn-primary">Log in</button>
+    </form>
+    <p style="margin-top:1rem"><a href="/forgot.html">Forgot your password?</a></p>
+    <p>New here? <a href="/register.html">Create an account</a></p>
+  </div>
+</div>
+</main>
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p>&copy; 2026 {{OPERATOR_NAME}}</p>
+    <ul>
+      <li><a href="/privacy.html">Privacy policy</a></li>
+      <li><a href="/terms.html">Terms and conditions</a></li>
+      <li><button type="button" class="link-btn" id="cookie-settings">Cookie settings</button></li>
+      <li><a href="mailto:{{CONTACT_EMAIL}}">Contact</a></li>
+    </ul>
+  </div>
+</footer>
+<script src="/vendor/supabase.js" defer></script>
+<script src="/js/config.js" defer></script>
+<script src="/js/common.js" defer></script>
+<script src="/js/consent.js" defer></script>
+<script src="/js/login.js" defer></script>
+</body>
+</html>
