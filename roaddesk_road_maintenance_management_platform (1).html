@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RoadDesk — Road Maintenance Management Platform</title>
+  <!-- Google Font: Inter for clean, readable student project typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    /* Custom subtle styling to give a grounded, clean B.Tech web engineering project feel */
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: #f4f6f9;
+      color: #1e293b;
+    }
+
+    /* Styled road-map grid canvas for the interactive location picker (inspired by Slide 5 Raipur map) */
+    .map-canvas-box {
+      background-color: #e9ecef;
+      background-image:
+        linear-gradient(to right, rgba(148, 163, 184, 0.25) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.25) 1px, transparent 1px);
+      background-size: 28px 28px;
+      position: relative;
+      overflow: hidden;
+      cursor: crosshair;
+      user-select: none;
+    }
+
+    /* Simulated road arteries inside the map picker */
+    .map-road-main {
+      position: absolute;
+      background: #ffffff;
+      border-top: 2px solid #cbd5e1;
+      border-bottom: 2px solid #cbd5e1;
+    }
+
+    .map-road-highway {
+      position: absolute;
+      background: #fed7aa;
+      border-top: 2px solid #f97316;
+      border-bottom: 2px solid #f97316;
+    }
+
+    /* Pin drop marker */
+    .map-pin {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      transition: left 0.15s ease, top 0.15s ease;
+      pointer-events: none;
+    }
+
+    /* Active nav tab indicator */
+    .nav-tab.active {
+      background-color: #f59e0b;
+      color: #0f172a;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Navigation Bar (Dark Slate + Amber Road-Marking Accent matching presentation slides) -->
+  <header class="bg-slate-900 text-white border-b-4 border-amber-400 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <!-- Brand Title -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-lg bg-amber-400 text-slate-900 flex items-center justify-center font-bold text-lg shadow-inner">
+            RD
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-lg tracking-tight text-white">RoadDesk</span>
+              <span class="text-[11px] uppercase tracking-wider bg-slate-800 text-amber-300 border border-slate-700 px-2 py-0.5 rounded">
+                B.Tech Project
+              </span>
+            </div>
+            <p class="text-xs text-slate-300">Road Maintenance Management Platform</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs for Live Presentation Demo -->
+      <nav class="flex flex-wrap items-center gap-1.5" aria-label="Portal Navigation">
+        <button
+          onclick="switchTab('overview')"
+          id="tab-overview"
+          class="nav-tab active px-3.5 py-2 rounded-lg text-sm text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          1. Overview &amp; Workflow
+        </button>
+        <button
+          onclick="switchTab('citizen')"
+          id="tab-citizen"
+          class="nav-tab px-3.5 py-2 rounded-lg text-sm text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          2. Citizen Portal
+        </button>
+        <button
+          onclick="switchTab('admin')"
+          id="tab-admin"
+          class="nav-tab px-3.5 py-2 rounded-lg text-sm text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          3. Admin &amp; Worker Portal
+        </button>
+        <button
+          onclick="switchTab('labour')"
+          id="tab-labour"
+          class="nav-tab px-3.5 py-2 rounded-lg text-sm text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          4. Labour Portal
+        </button>
+
+        <!-- Active Session Indicator & Logout / Switch Role Button -->
+        <div id="header-session-pill" class="hidden sm:flex items-center gap-2 ml-1 pl-2 border-l border-slate-700">
+          <span id="session-user-label" class="text-xs text-amber-300 font-medium"></span>
+          <button
+            onclick="logoutCurrentUser()"
+            class="text-xs bg-slate-800 hover:bg-red-900/60 text-slate-200 border border-slate-600 px-2.5 py-1.5 rounded-md transition-colors cursor-pointer"
+          >
+            Log out
+          </button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Toast / Status Message Banner (Replaces alert() cleanly) -->
+  <div id="toast-container" class="max-w-6xl w-full mx-auto px-4 pt-3 hidden">
+    <div id="toast-box" class="rounded-lg border px-4 py-3 text-sm font-medium flex items-center justify-between shadow-sm">
+      <span id="toast-message">Action completed.</span>
+      <button onclick="hideToast()" class="ml-4 text-xs underline opacity-80 hover:opacity-100 cursor-pointer">Dismiss</button>
+    </div>
+  </div>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
+
+    <!-- ===================================================================== -->
+    <!-- TAB 1: OVERVIEW / HOME TAB (Presenter 1 & Presentation Summary)       -->
+    <!-- ===================================================================== -->
+    <section id="view-overview" class="space-y-6">
+      <!-- Hero Banner Card -->
+      <div class="bg-slate-900 text-white rounded-xl p-6 md:p-8 border border-slate-800 shadow-sm">
+        <div class="max-w-3xl space-y-3">
+          <span class="inline-block text-xs font-semibold uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2.5 py-1 rounded-md">
+            Civic Infrastructure &amp; Public Service Web App
+          </span>
+          <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-white">
+            RoadDesk — Road Maintenance Management Platform
+          </h1>
+          <p class="text-lg text-amber-300 font-medium">
+            “Fix the road. Start with the report.”
+          </p>
+          <p class="text-sm md:text-base text-slate-300 leading-relaxed">
+            One connected platform linking citizens, municipal administrators, field workers, and labour personnel to turn vague road complaints into structured, prioritized repair work.
+          </p>
+          <div class="pt-2 flex flex-wrap gap-3">
+            <button
+              onclick="switchTab('citizen')"
+              class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
+            >
+              Citizen Login / Portal →
+            </button>
+            <button
+              onclick="switchTab('admin')"
+              class="bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 font-medium text-sm px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
+            >
+              Admin &amp; Worker Login
+            </button>
+            <button
+              onclick="switchTab('labour')"
+              class="bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 font-medium text-sm px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
+            >
+              Labour Crew Login
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key System Stats Strip (From Slide 7: 3 Portals, 4 Severity Levels, 7 Problem Types, 6 Report Statuses) -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <div class="text-2xl font-bold text-slate-900">3</div>
+          <div class="text-sm font-medium text-slate-700">Role-Based Portals</div>
+          <div class="text-xs text-slate-500 mt-0.5">Citizen, Admin/Worker, Labour</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <div class="text-2xl font-bold text-amber-600">4</div>
+          <div class="text-sm font-medium text-slate-700">Severity Levels</div>
+          <div class="text-xs text-slate-500 mt-0.5">Low, Medium, High, Critical</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <div class="text-2xl font-bold text-slate-900">7</div>
+          <div class="text-sm font-medium text-slate-700">Problem Types</div>
+          <div class="text-xs text-slate-500 mt-0.5">Structured issue categories</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <div class="text-2xl font-bold text-emerald-700">6</div>
+          <div class="text-sm font-medium text-slate-700">Report Statuses</div>
+          <div class="text-xs text-slate-500 mt-0.5">Reported through Closed</div>
+        </div>
+      </div>
+
+      <!-- Problem Statement & Objective Grid (From Slide 2 & Script) -->
+      <div class="grid md:grid-cols-2 gap-5">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+            <h2 class="font-bold text-base text-slate-900">The Problem Statement</h2>
+          </div>
+          <p class="text-sm text-slate-700 leading-relaxed">
+            Damaged roads—such as potholes, cracks, and broken surfaces—cause accidents, traffic delays, and daily inconvenience. Currently, municipal authorities often receive vague complaints without exact location details or urgency levels.
+          </p>
+          <div class="bg-slate-50 border-l-4 border-amber-400 p-3 rounded-r-lg text-sm font-medium text-slate-800">
+            “How can municipal authorities manage road-maintenance complaints and coordinate repair work in a more organized way?”
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+            <h2 class="font-bold text-base text-slate-900">Project Objective</h2>
+          </div>
+          <p class="text-sm text-slate-700 leading-relaxed">
+            Provide one common web platform where road issues are reported with structured details (issue type, map location, and severity), reviewed by administrators, assigned to municipal workers, and repaired by labour personnel.
+          </p>
+          <ul class="text-xs text-slate-600 space-y-1.5 pt-1">
+            <li>• Converts general complaints into actionable field data</li>
+            <li>• Enables severity-based prioritization for urgent safety risks</li>
+            <li>• Connects complaint registration directly to physical repair work</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 4-Step Workflow Diagram (Slide 3: 01 Report -> 02 Review -> 03 Manage -> 04 Repair) -->
+      <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h2 class="font-bold text-base text-slate-900 mb-4">One System. One Process. (4-Step Workflow)</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="border border-slate-200 rounded-lg p-4 bg-slate-50">
+            <span class="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">STEP 01</span>
+            <h3 class="font-bold text-slate-900 mt-2">Report</h3>
+            <p class="text-xs text-slate-600 mt-1">Citizen submits road problem with exact map pin, category, and severity level.</p>
+          </div>
+          <div class="border border-slate-200 rounded-lg p-4 bg-slate-50">
+            <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">STEP 02</span>
+            <h3 class="font-bold text-slate-900 mt-2">Review</h3>
+            <p class="text-xs text-slate-600 mt-1">Municipal authority verifies the report details and confirms location accuracy.</p>
+          </div>
+          <div class="border border-slate-200 rounded-lg p-4 bg-slate-50">
+            <span class="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded">STEP 03</span>
+            <h3 class="font-bold text-slate-900 mt-2">Manage</h3>
+            <p class="text-xs text-slate-600 mt-1">Administrators prioritize urgent cases and assign a municipal worker &amp; crew.</p>
+          </div>
+          <div class="border border-slate-200 rounded-lg p-4 bg-slate-50">
+            <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">STEP 04</span>
+            <h3 class="font-bold text-slate-900 mt-2">Repair</h3>
+            <p class="text-xs text-slate-600 mt-1">Workers and labour personnel complete the field repair and log completion.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 Portals Summary Cards -->
+      <div class="grid md:grid-cols-3 gap-5">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <span class="text-xs font-semibold text-slate-500 uppercase">Portal 01</span>
+            <h3 class="font-bold text-lg text-slate-900 mt-0.5">Citizen Portal</h3>
+            <p class="text-sm text-slate-600 mt-2">
+              Simple interface for citizens to report potholes, cracks, and damaged roads with pinpointed locations and severity ratings, plus track their submitted reports.
+            </p>
+          </div>
+          <button
+            onclick="switchTab('citizen')"
+            class="mt-4 w-full text-center bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2.5 rounded-lg transition-colors cursor-pointer"
+          >
+            Open Citizen Login
+          </button>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <span class="text-xs font-semibold text-slate-500 uppercase">Portal 02</span>
+            <h3 class="font-bold text-lg text-slate-900 mt-0.5">Admin &amp; Municipal Worker Portal</h3>
+            <p class="text-sm text-slate-600 mt-2">
+              Dashboard filtered by status and severity. Administrators review reports, update statuses, and assign field workers to coordinate maintenance.
+            </p>
+          </div>
+          <button
+            onclick="switchTab('admin')"
+            class="mt-4 w-full text-center bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2.5 rounded-lg transition-colors cursor-pointer"
+          >
+            Open Admin &amp; Worker Login
+          </button>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <span class="text-xs font-semibold text-slate-500 uppercase">Portal 03</span>
+            <h3 class="font-bold text-lg text-slate-900 mt-0.5">Labour Portal</h3>
+            <p class="text-sm text-slate-600 mt-2">
+              Dedicated field-task view for repair crews showing assigned jobs, location notes, severity priority, and one-click status updates for on-site repair work.
+            </p>
+          </div>
+          <button
+            onclick="switchTab('labour')"
+            class="mt-4 w-full text-center bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2.5 rounded-lg transition-colors cursor-pointer"
+          >
+            Open Labour Crew Login
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- DEDICATED ROLE-BASED LOGIN PORTAL GATE (Citizen / Admin / Labour)     -->
+    <!-- ===================================================================== -->
+    <section id="view-login" class="hidden max-w-2xl mx-auto space-y-5 py-2">
+      <!-- Role Switcher Tabs inside the Login Screen -->
+      <div class="bg-white border border-slate-200 rounded-xl p-2 shadow-sm grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          onclick="openLoginForRole('citizen')"
+          id="login-role-btn-citizen"
+          class="py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer bg-slate-900 text-amber-300"
+        >
+          Citizen Login
+        </button>
+        <button
+          type="button"
+          onclick="openLoginForRole('admin')"
+          id="login-role-btn-admin"
+          class="py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer text-slate-700 hover:bg-slate-100"
+        >
+          Admin &amp; Worker Login
+        </button>
+        <button
+          type="button"
+          onclick="openLoginForRole('labour')"
+          id="login-role-btn-labour"
+          class="py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer text-slate-700 hover:bg-slate-100"
+        >
+          Labour Crew Login
+        </button>
+      </div>
+
+      <!-- 1. CITIZEN LOGIN / REGISTER CARD -->
+      <div id="login-card-citizen" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="bg-slate-900 text-white px-6 py-4 border-b-2 border-amber-400">
+          <span class="text-[11px] uppercase tracking-wider text-amber-300 font-semibold">Portal 01 • Public Access</span>
+          <h2 id="citizen-auth-heading" class="text-xl font-bold mt-0.5">Citizen Portal Sign In</h2>
+          <p class="text-xs text-slate-300 mt-1">Sign in to report road issues in your area and track repair progress.</p>
+        </div>
+
+        <form onsubmit="handleRoleLogin(event, 'citizen')" class="p-6 space-y-4">
+          <div id="citizen-register-name-wrap" class="hidden">
+            <label for="citizen-reg-name" class="block text-sm font-semibold text-slate-800 mb-1">Full Name</label>
+            <input
+              type="text"
+              id="citizen-reg-name"
+              placeholder="e.g., Rahul Verma"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+            />
+          </div>
+
+          <div>
+            <label for="citizen-login-id" class="block text-sm font-semibold text-slate-800 mb-1">
+              Mobile Number or Email <span class="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              id="citizen-login-id"
+              required
+              placeholder="e.g., 98271-45012 or rahul.citizen@gmail.com"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+            />
+          </div>
+
+          <div>
+            <label for="citizen-login-pass" class="block text-sm font-semibold text-slate-800 mb-1">
+              Password <span class="text-red-600">*</span>
+            </label>
+            <input
+              type="password"
+              id="citizen-login-pass"
+              required
+              placeholder="Enter password"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+            />
+          </div>
+
+          <div class="flex items-center justify-between text-xs pt-1">
+            <button
+              type="button"
+              onclick="toggleCitizenRegister()"
+              id="citizen-toggle-register-btn"
+              class="text-slate-700 font-semibold underline hover:text-slate-900 cursor-pointer"
+            >
+              New citizen? Create an account
+            </button>
+            <span class="text-slate-400">OTP / Password Verified</span>
+          </div>
+
+          <div class="pt-2 flex flex-col sm:flex-row gap-2.5">
+            <button
+              type="submit"
+              id="citizen-submit-auth-btn"
+              class="flex-1 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-sm py-2.5 px-4 rounded-lg border border-amber-500 transition-colors cursor-pointer"
+            >
+              Sign In to Citizen Portal
+            </button>
+            <button
+              type="button"
+              onclick="quickDemoLogin('citizen')"
+              class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-semibold text-xs py-2.5 px-4 rounded-lg transition-colors cursor-pointer"
+            >
+              Quick Demo Login (Rahul Verma)
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 2. ADMINISTRATOR & MUNICIPAL WORKER LOGIN CARD -->
+      <div id="login-card-admin" class="hidden bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="bg-slate-900 text-white px-6 py-4 border-b-2 border-amber-400">
+          <span class="text-[11px] uppercase tracking-wider text-amber-300 font-semibold">Portal 02 • Municipal Authority</span>
+          <h2 class="text-xl font-bold mt-0.5">Administration &amp; Municipal Worker Login</h2>
+          <p class="text-xs text-slate-300 mt-1">Authorized access for Municipal Administrators, Junior Engineers, and Field Supervisors.</p>
+        </div>
+
+        <form onsubmit="handleRoleLogin(event, 'admin')" class="p-6 space-y-4">
+          <div>
+            <label for="admin-role-subtype" class="block text-sm font-semibold text-slate-800 mb-1">
+              Department Role <span class="text-red-600">*</span>
+            </label>
+            <select
+              id="admin-role-subtype"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm bg-white text-slate-900 focus:outline-none focus:border-slate-900"
+            >
+              <option value="Municipal Administrator">Municipal Administrator (Review &amp; Priority)</option>
+              <option value="Junior Engineer (Field)">Municipal Worker — Junior Engineer (Field Coordination)</option>
+              <option value="Ward Supervisor">Municipal Worker — Ward Road Supervisor</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="admin-login-id" class="block text-sm font-semibold text-slate-800 mb-1">
+              Employee ID or Official Email <span class="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              id="admin-login-id"
+              required
+              placeholder="e.g., RMC-ADM-204 or sk.sharma@raipurmc.gov.in"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+            />
+          </div>
+
+          <div>
+            <label for="admin-login-pass" class="block text-sm font-semibold text-slate-800 mb-1">
+              Official Password <span class="text-red-600">*</span>
+            </label>
+            <input
+              type="password"
+              id="admin-login-pass"
+              required
+              placeholder="Enter municipal portal password"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+            />
+          </div>
+
+          <div class="pt-2 flex flex-col sm:flex-row gap-2.5">
+            <button
+              type="submit"
+              class="flex-1 bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold text-sm py-2.5 px-4 rounded-lg transition-colors cursor-pointer"
+            >
+              Sign In to Admin &amp; Worker Portal
+            </button>
+            <button
+              type="button"
+              onclick="quickDemoLogin('admin')"
+              class="bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 font-semibold text-xs py-2.5 px-4 rounded-lg transition-colors cursor-pointer"
+            >
+              Quick Demo Login (S. K. Sharma)
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 3. LABOUR PERSONNEL LOGIN CARD -->
+      <div id="login-card-labour" class="hidden bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="bg-slate-900 text-white px-6 py-4 border-b-2 border-amber-400">
+          <span class="text-[11px] uppercase tracking-wider text-amber-300 font-semibold">Portal 03 • Field Repair Crew</span>
+          <h2 class="text-xl font-bold mt-0.5">Labour Portal Login</h2>
+          <p class="text-xs text-slate-300 mt-1">Simple sign-in for road maintenance labour teams to view assigned repair sites and log completed work.</p>
+        </div>
+
+        <form onsubmit="handleRoleLogin(event, 'labour')" class="p-6 space-y-4">
+          <div>
+            <label for="labour-crew-select" class="block text-sm font-semibold text-slate-800 mb-1">
+              Select Repair Crew / Unit <span class="text-red-600">*</span>
+            </label>
+            <select
+              id="labour-crew-select"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm bg-white text-slate-900 focus:outline-none focus:border-slate-900"
+            >
+              <option value="Crew #1 (Zone A - Bhatagaon)">Crew #1 — Zone A (Bhatagaon / Ring Road)</option>
+              <option value="Crew #2 (Zone B - Dhamtari Rd)">Crew #2 — Zone B (Old Dhamtari Road)</option>
+              <option value="Crew #3 (Zone C - Civil Lines)">Crew #3 — Zone C (Civil Lines / Station Rd)</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="labour-login-id" class="block text-sm font-semibold text-slate-800 mb-1">
+              Labour Badge ID or Mobile Number <span class="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              id="labour-login-id"
+              required
+              placeholder="e.g., LBR-042 or 94252-11089"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+            />
+          </div>
+
+          <div>
+            <label for="labour-login-pin" class="block text-sm font-semibold text-slate-800 mb-1">
+              4-Digit Crew PIN <span class="text-red-600">*</span>
+            </label>
+            <input
+              type="password"
+              id="labour-login-pin"
+              maxlength="4"
+              required
+              placeholder="••••"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm font-mono tracking-widest text-slate-900 focus:outline-none focus:border-slate-900"
+            />
+          </div>
+
+          <div class="pt-2 flex flex-col sm:flex-row gap-2.5">
+            <button
+              type="submit"
+              class="flex-1 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-sm py-2.5 px-4 rounded-lg border border-amber-500 transition-colors cursor-pointer"
+            >
+              Enter Labour Field Portal
+            </button>
+            <button
+              type="button"
+              onclick="quickDemoLogin('labour')"
+              class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-semibold text-xs py-2.5 px-4 rounded-lg transition-colors cursor-pointer"
+            >
+              Quick Demo Login (Ramesh Kumar)
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 2: CITIZEN PORTAL TAB (Presenter 2 & Slide 5 Interface)           -->
+    <!-- ===================================================================== -->
+    <section id="view-citizen" class="hidden space-y-6">
+      <!-- Page Header (Matches Slide 5 top links: Report an issue | My reports | Log out) -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div>
+          <h1 class="text-xl md:text-2xl font-bold text-slate-900">Citizen Portal — Report a Road Issue</h1>
+          <p class="text-xs sm:text-sm text-slate-600">Submit structured road maintenance complaints so repair teams know what to fix and where.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 self-start sm:self-center">
+          <a href="#citizen-reports-anchor" class="text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-lg border border-slate-300">
+            My reports
+          </a>
+          <span id="citizen-badge-name" class="text-xs font-medium bg-amber-100 text-amber-950 border border-amber-300 px-3 py-1.5 rounded-lg">
+            Citizen: Rahul Verma
+          </span>
+          <button
+            type="button"
+            onclick="logoutCurrentUser('citizen')"
+            class="text-xs font-semibold bg-slate-900 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          >
+            Log out
+          </button>
+        </div>
+      </div>
+
+      <!-- Emergency Notice Banner (Exact wording from Slide 5) -->
+      <div class="bg-amber-50 border-l-4 border-amber-500 border border-amber-200 rounded-r-xl p-4 flex items-start gap-3">
+        <div class="w-6 h-6 rounded-full bg-amber-500 text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+          !
+        </div>
+        <div class="text-sm text-amber-950">
+          <strong>Emergency Notice:</strong> If someone is in immediate danger, call the emergency number (<strong>112 in India</strong>) before using this form.
+        </div>
+      </div>
+
+      <!-- Main Form + Interactive Location Picker Layout -->
+      <form id="citizen-report-form" onsubmit="handleCitizenSubmit(event)" class="grid lg:grid-cols-12 gap-6">
+        <!-- Left Column: Issue Details & Severity Cards (7 cols) -->
+        <div class="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-5 md:p-6 shadow-sm space-y-5">
+          <h2 class="font-bold text-lg text-slate-900 border-b border-slate-100 pb-3">1. Issue Details</h2>
+
+          <!-- Title Input -->
+          <div>
+            <label for="issue-title" class="block text-sm font-semibold text-slate-800 mb-1">
+              Title <span class="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              id="issue-title"
+              required
+              placeholder="e.g., Deep pothole outside the post office"
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+            />
+            <p class="text-xs text-slate-500 mt-1">Say what and where clearly in one short sentence.</p>
+          </div>
+
+          <!-- Type of Problem Dropdown (7 Problem Types) -->
+          <div>
+            <label for="issue-type" class="block text-sm font-semibold text-slate-800 mb-1">
+              Type of problem <span class="text-red-600">*</span>
+            </label>
+            <select
+              id="issue-type"
+              required
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 bg-white focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+            >
+              <option value="">Choose a type</option>
+              <option value="Pothole">1. Pothole</option>
+              <option value="Road Crack">2. Road Crack</option>
+              <option value="Broken Surface">3. Broken Surface</option>
+              <option value="Waterlogging / Drainage">4. Waterlogging / Drainage</option>
+              <option value="Damaged Manhole / Drain Cover">5. Damaged Manhole / Drain Cover</option>
+              <option value="Faded Road Markings / Signage">6. Faded Road Markings / Signage</option>
+              <option value="Damaged Speed Breaker">7. Damaged Speed Breaker</option>
+            </select>
+          </div>
+
+          <!-- 4 Clickable Severity Level Cards (Slide 4 & Slide 5) -->
+          <div>
+            <label class="block text-sm font-semibold text-slate-800 mb-2">
+              Severity Level <span class="text-red-600">*</span>
+            </label>
+            <input type="hidden" id="issue-severity" value="Medium" />
+            <div class="grid sm:grid-cols-2 gap-3" id="severity-cards-group">
+              <!-- Low -->
+              <div
+                onclick="selectSeverity('Low', this)"
+                class="severity-card border border-slate-200 rounded-lg p-3.5 cursor-pointer hover:border-slate-400 transition-all"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-sm text-slate-900">Low</span>
+                  <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">Minor wear, safe to drive</p>
+              </div>
+
+              <!-- Medium (Default Selected) -->
+              <div
+                onclick="selectSeverity('Medium', this)"
+                class="severity-card border-2 border-amber-500 bg-amber-50/60 rounded-lg p-3.5 cursor-pointer transition-all"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-sm text-slate-900">Medium</span>
+                  <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                </div>
+                <p class="text-xs text-slate-700 mt-1">Noticeable, may get worse</p>
+              </div>
+
+              <!-- High -->
+              <div
+                onclick="selectSeverity('High', this)"
+                class="severity-card border border-slate-200 rounded-lg p-3.5 cursor-pointer hover:border-slate-400 transition-all"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-sm text-slate-900">High</span>
+                  <span class="w-3 h-3 rounded-full bg-orange-500"></span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">Can damage vehicles or hurt riders</p>
+              </div>
+
+              <!-- Critical -->
+              <div
+                onclick="selectSeverity('Critical', this)"
+                class="severity-card border border-slate-200 rounded-lg p-3.5 cursor-pointer hover:border-slate-400 transition-all"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-sm text-slate-900">Critical</span>
+                  <span class="w-3 h-3 rounded-full bg-red-600"></span>
+                </div>
+                <p class="text-xs text-slate-600 mt-1">Immediate danger</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Optional Description / Notes -->
+          <div>
+            <label for="issue-notes" class="block text-sm font-semibold text-slate-800 mb-1">
+              Additional Notes (Optional)
+            </label>
+            <textarea
+              id="issue-notes"
+              rows="2"
+              placeholder="Mention nearby shop, school, traffic condition, or approximate size..."
+              class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Right Column: Interactive Location Picker (5 cols, matching Slide 5 map view) -->
+        <div class="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-5 md:p-6 shadow-sm flex flex-col justify-between space-y-4">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 class="font-bold text-lg text-slate-900">2. Location</h2>
+              <button
+                type="button"
+                onclick="useCurrentLocation()"
+                class="text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                Use my current location
+              </button>
+            </div>
+            <p class="text-xs text-slate-600">
+              Click anywhere on the area map below to place the pin, or enter the street/landmark name.
+            </p>
+
+            <!-- Interactive Map Canvas Box (Styled like Slide 5 Raipur / Bhatagaon Road map) -->
+            <div
+              id="location-map-box"
+              onclick="placeMapPin(event)"
+              class="map-canvas-box h-56 w-full rounded-lg border border-slate-300"
+              title="Click on the map to place the issue pin"
+            >
+              <!-- Simulated Roads & Labels -->
+              <div class="map-road-highway w-full h-3.5 top-10 -rotate-3"></div>
+              <span class="absolute top-6 left-6 text-[10px] font-semibold text-orange-900 bg-orange-100/90 px-1.5 rounded">
+                Ring Road / Flyover
+              </span>
+
+              <div class="map-road-main w-full h-3 top-32 rotate-6"></div>
+              <span class="absolute top-36 left-4 text-[10px] font-medium text-slate-700 bg-white/90 px-1.5 rounded shadow-xs">
+                Bhatagaon Road
+              </span>
+
+              <div class="map-road-main w-3 h-full left-2/3 -rotate-6"></div>
+              <span class="absolute bottom-8 right-3 text-[10px] font-medium text-slate-700 bg-white/90 px-1.5 rounded shadow-xs">
+                Old Dhamtari Road
+              </span>
+
+              <!-- Zoom indicator decoration (like Leaflet in Slide 5) -->
+              <div class="absolute top-2.5 left-2.5 bg-white border border-slate-300 rounded shadow-xs flex flex-col text-xs font-bold text-slate-700">
+                <span class="px-2 py-0.5 border-b border-slate-200">+</span>
+                <span class="px-2 py-0.5">−</span>
+              </div>
+
+              <!-- Map Attribution footer -->
+              <div class="absolute bottom-1 right-1.5 bg-white/85 px-1.5 py-0.5 rounded text-[10px] text-slate-600">
+                Raipur Area Grid • Click to Pin
+              </div>
+
+              <!-- Interactive Pin Marker -->
+              <div id="map-pin-marker" class="map-pin" style="left: 48%; top: 56%;">
+                <div class="flex flex-col items-center">
+                  <div class="w-6 h-6 rounded-full bg-red-600 border-2 border-white shadow-md flex items-center justify-center text-white text-[10px] font-bold">
+                    •
+                  </div>
+                  <div class="w-1 h-2 bg-slate-800"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Coordinates Readout -->
+            <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs">
+              <span class="text-slate-600 font-medium">Pinned Coordinates:</span>
+              <span id="coord-display" class="font-mono font-semibold text-slate-900">21.2248° N, 81.6215° E</span>
+            </div>
+
+            <!-- Street / Landmark Text Input -->
+            <div>
+              <label for="issue-location" class="block text-sm font-semibold text-slate-800 mb-1">
+                Street / Landmark Address <span class="text-red-600">*</span>
+              </label>
+              <input
+                type="text"
+                id="issue-location"
+                required
+                value="Bhatagaon Road, near Main Chowk"
+                placeholder="Enter road name or nearby landmark"
+                class="w-full rounded-lg border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+              />
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-2">
+            <button
+              type="submit"
+              class="w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-sm py-3 px-4 rounded-lg border border-amber-500 shadow-xs transition-colors cursor-pointer"
+            >
+              Submit Road Issue Report
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- My Reports Section (Live Citizen Tracking) -->
+      <div id="citizen-reports-anchor" class="bg-white border border-slate-200 rounded-xl p-5 md:p-6 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h2 class="font-bold text-lg text-slate-900">My Reports</h2>
+            <p class="text-xs text-slate-500">Live status of road complaints submitted through the Citizen Portal.</p>
+          </div>
+          <span id="citizen-report-count" class="text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1 rounded-full self-start">
+            0 Reports
+          </span>
+        </div>
+
+        <div id="citizen-reports-list" class="grid md:grid-cols-2 gap-4">
+          <!-- Populated dynamically by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 3: ADMIN & MUNICIPAL WORKER PORTAL TAB (Presenter 3)              -->
+    <!-- ===================================================================== -->
+    <section id="view-admin" class="hidden space-y-6">
+      <!-- Header -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div>
+          <h1 class="text-xl md:text-2xl font-bold text-slate-900">Administration &amp; Municipal Worker Portal</h1>
+          <p class="text-xs sm:text-sm text-slate-600">Review citizen complaints, prioritize by severity, assign workers, and update repair status.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 text-xs self-start md:self-center">
+          <span id="admin-badge-name" class="bg-slate-900 text-amber-300 font-semibold px-3 py-1.5 rounded-lg">
+            Logged in: S. K. Sharma (Admin)
+          </span>
+          <button
+            type="button"
+            onclick="logoutCurrentUser('admin')"
+            class="bg-slate-100 hover:bg-red-600 hover:text-white text-slate-800 border border-slate-300 font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          >
+            Log out
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Counters by Status -->
+      <div id="admin-status-summary" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Filters Bar (Status & Severity) -->
+      <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <div>
+            <label for="filter-status" class="block text-xs font-semibold text-slate-600 mb-1">Filter by Status</label>
+            <select
+              id="filter-status"
+              onchange="renderAdminReports()"
+              class="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white text-slate-900 focus:outline-none focus:border-slate-900"
+            >
+              <option value="All">All Statuses (6)</option>
+              <option value="Reported">Reported</option>
+              <option value="Verified">Verified</option>
+              <option value="Assigned">Assigned</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+              <option value="Closed">Closed</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="filter-severity" class="block text-xs font-semibold text-slate-600 mb-1">Filter by Severity</label>
+            <select
+              id="filter-severity"
+              onchange="renderAdminReports()"
+              class="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white text-slate-900 focus:outline-none focus:border-slate-900"
+            >
+              <option value="All">All Severities</option>
+              <option value="Critical">Critical (Immediate danger)</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="text-xs text-slate-500">
+          Tip: Change <strong>Status</strong> or <strong>Assigned Worker</strong> below to see live updates in the Citizen &amp; Labour portals.
+        </div>
+      </div>
+
+      <!-- Reports Management Table / Cards -->
+      <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100 border-b border-slate-200 text-xs font-bold uppercase text-slate-700">
+                <th class="py-3 px-4">ID &amp; Issue</th>
+                <th class="py-3 px-4">Problem Type</th>
+                <th class="py-3 px-4">Location</th>
+                <th class="py-3 px-4">Severity</th>
+                <th class="py-3 px-4">Assigned Worker / Crew</th>
+                <th class="py-3 px-4">Workflow Status</th>
+              </tr>
+            </thead>
+            <tbody id="admin-reports-tbody" class="divide-y divide-slate-200 text-sm">
+              <!-- Populated dynamically by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 4: LABOUR PORTAL TAB (Presenter 3 - Field Repair Execution)       -->
+    <!-- ===================================================================== -->
+    <section id="view-labour" class="hidden space-y-6">
+      <!-- Header -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <div>
+          <h1 class="text-xl md:text-2xl font-bold text-slate-900">Labour Portal — Field Repair Tasks</h1>
+          <p class="text-xs sm:text-sm text-slate-600">
+            Connecting registered complaints with real on-site repair work. View assigned tasks and update field repair progress.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 self-start md:self-center">
+          <span id="labour-badge-name" class="bg-amber-100 text-amber-900 border border-amber-300 text-xs font-semibold px-3 py-1.5 rounded-lg">
+            Logged in: Ramesh Kumar (Crew #1)
+          </span>
+          <button
+            type="button"
+            onclick="logoutCurrentUser('labour')"
+            class="bg-slate-900 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          >
+            Log out
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Field Jobs Grid -->
+      <div id="labour-tasks-grid" class="grid md:grid-cols-2 gap-5">
+        <!-- Populated dynamically by JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Simple Student Project Footer -->
+  <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 mt-10">
+    <div class="max-w-6xl mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+      <p class="font-medium text-slate-200">
+        RoadDesk — B.Tech College Project | Road Maintenance Management Platform
+      </p>
+      <p>
+        Built with HTML, CSS &amp; Vanilla JavaScript • Citizen, Admin &amp; Labour Portals
+      </p>
+    </div>
+  </footer>
+
+  <!-- ======================================================================= -->
+  <!-- VANILLA JAVASCRIPT APPLICATION LOGIC (Shared State Across All Portals)  -->
+  <!-- ======================================================================= -->
+  <script>
+    // 1. Session State & LocalStorage Persistence for Role-Based Logins
+    const STORAGE_KEY_REPORTS = 'roaddesk_reports_v1';
+    const STORAGE_KEY_SESSION = 'roaddesk_session_v1';
+
+    let currentSession = JSON.parse(localStorage.getItem(STORAGE_KEY_SESSION) || 'null');
+    let isCitizenRegisterMode = false;
+
+    const DEFAULT_REPORTS = [
+      {
+        id: 'RD-101',
+        title: 'Deep pothole outside the post office',
+        type: 'Pothole',
+        severity: 'Critical',
+        location: 'Bhatagaon Road, near Main Post Office',
+        coords: '21.2248° N, 81.6215° E',
+        notes: 'Two-wheelers swerving into oncoming lane to avoid deep crater.',
+        status: 'Assigned',
+        assignedWorker: 'R. Verma (JE) + Crew #1',
+        reportedAt: 'Today, 09:15 AM'
+      },
+      {
+        id: 'RD-102',
+        title: 'Broken road surface near bus stop',
+        type: 'Broken Surface',
+        severity: 'High',
+        location: 'Old Dhamtari Road, Sector 2 Bus Stop',
+        coords: '21.2194° N, 81.6340° E',
+        notes: 'Asphalt peeled off across 4 meters causing slow traffic.',
+        status: 'In Progress',
+        assignedWorker: 'S. Patel (Supervisor) + Crew #2',
+        reportedAt: 'Yesterday, 04:40 PM'
+      },
+      {
+        id: 'RD-103',
+        title: 'Damaged storm drain cover on corner',
+        type: 'Damaged Manhole / Drain Cover',
+        severity: 'High',
+        location: 'Ring Road Service Lane, Chowk 3',
+        coords: '21.2310° N, 81.6182° E',
+        notes: 'Iron grate cracked; needs replacement before night traffic.',
+        status: 'Verified',
+        assignedWorker: 'Unassigned',
+        reportedAt: 'Yesterday, 11:20 AM'
+      },
+      {
+        id: 'RD-104',
+        title: 'Longitudinal road cracks near school gate',
+        type: 'Road Crack',
+        severity: 'Medium',
+        location: 'Station Road, Opp. Govt. Higher Sec. School',
+        coords: '21.2402° N, 81.6291° E',
+        notes: 'Surface cracks widening after recent rain.',
+        status: 'Reported',
+        assignedWorker: 'Unassigned',
+        reportedAt: '2 days ago'
+      },
+      {
+        id: 'RD-105',
+        title: 'Faded zebra crossing and speed breaker paint',
+        type: 'Faded Road Markings / Signage',
+        severity: 'Low',
+        location: 'Civil Lines Main Avenue',
+        coords: '21.2365° N, 81.6412° E',
+        notes: 'White thermoplastic markings worn out.',
+        status: 'Resolved',
+        assignedWorker: 'M. Nishad + Crew #1',
+        reportedAt: '4 days ago'
+      }
+    ];
+
+    let roadReports = JSON.parse(localStorage.getItem(STORAGE_KEY_REPORTS) || 'null') || DEFAULT_REPORTS;
+
+    function saveReportsState() {
+      localStorage.setItem(STORAGE_KEY_REPORTS, JSON.stringify(roadReports));
+    }
+
+    function saveSessionState() {
+      if (currentSession) {
+        localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(currentSession));
+      } else {
+        localStorage.removeItem(STORAGE_KEY_SESSION);
+      }
+      updateSessionHeaderUI();
+    }
+
+    const ALL_STATUSES = ['Reported', 'Verified', 'Assigned', 'In Progress', 'Resolved', 'Closed'];
+    const WORKER_OPTIONS = [
+      'Unassigned',
+      'R. Verma (JE) + Crew #1',
+      'S. Patel (Supervisor) + Crew #2',
+      'M. Nishad + Crew #1',
+      'A. Sahu (Field Eng.) + Crew #3'
+    ];
+
+    // 2. Role-Based Tab Navigation & Authentication Gate
+    function switchTab(tabName) {
+      const allSections = ['overview', 'login', 'citizen', 'admin', 'labour'];
+      const navButtons = ['overview', 'citizen', 'admin', 'labour'];
+
+      // Highlight the requested top nav button
+      navButtons.forEach((btnKey) => {
+        const btn = document.getElementById(`tab-${btnKey}`);
+        if (btnKey === tabName) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // Check if protected portal requires login for that specific role
+      if (['citizen', 'admin', 'labour'].includes(tabName)) {
+        if (!currentSession || currentSession.role !== tabName) {
+          allSections.forEach((sec) => {
+            document.getElementById(`view-${sec}`).classList.add('hidden');
+          });
+          document.getElementById('view-login').classList.remove('hidden');
+          openLoginForRole(tabName);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+      }
+
+      // Show authorized section
+      allSections.forEach((sec) => {
+        const el = document.getElementById(`view-${sec}`);
+        if (sec === tabName) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+
+      renderAllViews();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Switch between Citizen, Admin, and Labour login cards
+    function openLoginForRole(role) {
+      const roles = ['citizen', 'admin', 'labour'];
+      roles.forEach((r) => {
+        const card = document.getElementById(`login-card-${r}`);
+        const btn = document.getElementById(`login-role-btn-${r}`);
+        if (r === role) {
+          card.classList.remove('hidden');
+          btn.className =
+            'py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer bg-slate-900 text-amber-300';
+        } else {
+          card.classList.add('hidden');
+          btn.className =
+            'py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer text-slate-700 hover:bg-slate-100';
+        }
+      });
+    }
+
+    function toggleCitizenRegister() {
+      isCitizenRegisterMode = !isCitizenRegisterMode;
+      const nameWrap = document.getElementById('citizen-register-name-wrap');
+      const heading = document.getElementById('citizen-auth-heading');
+      const submitBtn = document.getElementById('citizen-submit-auth-btn');
+      const toggleBtn = document.getElementById('citizen-toggle-register-btn');
+
+      if (isCitizenRegisterMode) {
+        nameWrap.classList.remove('hidden');
+        heading.textContent = 'Citizen Portal Registration';
+        submitBtn.textContent = 'Create Citizen Account & Sign In';
+        toggleBtn.textContent = 'Already registered? Sign in instead';
+      } else {
+        nameWrap.classList.add('hidden');
+        heading.textContent = 'Citizen Portal Sign In';
+        submitBtn.textContent = 'Sign In to Citizen Portal';
+        toggleBtn.textContent = 'New citizen? Create an account';
+      }
+    }
+
+    // Handle Form Login Submission for each role
+    function handleRoleLogin(event, role) {
+      event.preventDefault();
+
+      if (role === 'citizen') {
+        const regName = document.getElementById('citizen-reg-name').value.trim();
+        const loginId = document.getElementById('citizen-login-id').value.trim();
+        const displayName = isCitizenRegisterMode && regName ? regName : loginId || 'Citizen User';
+        currentSession = {
+          role: 'citizen',
+          name: displayName,
+          subtitle: 'Citizen'
+        };
+      } else if (role === 'admin') {
+        const subtype = document.getElementById('admin-role-subtype').value;
+        const empId = document.getElementById('admin-login-id').value.trim();
+        currentSession = {
+          role: 'admin',
+          name: empId || 'Municipal Officer',
+          subtitle: subtype
+        };
+      } else if (role === 'labour') {
+        const crew = document.getElementById('labour-crew-select').value;
+        const badgeId = document.getElementById('labour-login-id').value.trim();
+        currentSession = {
+          role: 'labour',
+          name: badgeId || 'Field Labourer',
+          subtitle: crew
+        };
+      }
+
+      saveSessionState();
+      showToast(`Signed in as ${currentSession.name} (${currentSession.subtitle}).`, 'success');
+      switchTab(role);
+    }
+
+    // 1-Click Demo Login for smooth live college presentation
+    function quickDemoLogin(role) {
+      if (role === 'citizen') {
+        currentSession = {
+          role: 'citizen',
+          name: 'Rahul Verma',
+          subtitle: 'Citizen (Raipur)'
+        };
+      } else if (role === 'admin') {
+        currentSession = {
+          role: 'admin',
+          name: 'S. K. Sharma',
+          subtitle: 'Municipal Administrator'
+        };
+      } else if (role === 'labour') {
+        currentSession = {
+          role: 'labour',
+          name: 'Ramesh Kumar',
+          subtitle: 'Crew #1 • Zone A'
+        };
+      }
+
+      saveSessionState();
+      showToast(`Demo login successful: ${currentSession.name} (${currentSession.subtitle}).`, 'success');
+      switchTab(role);
+    }
+
+    function logoutCurrentUser(redirectRole) {
+      const lastRole = redirectRole || (currentSession ? currentSession.role : 'citizen');
+      currentSession = null;
+      saveSessionState();
+      showToast('You have logged out of the portal.', 'warning');
+      switchTab(lastRole);
+    }
+
+    function updateSessionHeaderUI() {
+      const pill = document.getElementById('header-session-pill');
+      const label = document.getElementById('session-user-label');
+
+      if (currentSession) {
+        pill.classList.remove('hidden');
+        pill.classList.add('flex');
+        label.textContent = `${currentSession.name} (${currentSession.role.toUpperCase()})`;
+
+        // Update portal-specific user badges
+        const citizenBadge = document.getElementById('citizen-badge-name');
+        const adminBadge = document.getElementById('admin-badge-name');
+        const labourBadge = document.getElementById('labour-badge-name');
+
+        if (citizenBadge && currentSession.role === 'citizen') {
+          citizenBadge.textContent = `Citizen: ${currentSession.name}`;
+        }
+        if (adminBadge && currentSession.role === 'admin') {
+          adminBadge.textContent = `Logged in: ${currentSession.name} (${currentSession.subtitle})`;
+        }
+        if (labourBadge && currentSession.role === 'labour') {
+          labourBadge.textContent = `Logged in: ${currentSession.name} (${currentSession.subtitle})`;
+        }
+      } else {
+        pill.classList.add('hidden');
+        pill.classList.remove('flex');
+      }
+    }
+
+    // 3. Toast Notification Helper (Replaces alert())
+    let toastTimeout = null;
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const box = document.getElementById('toast-box');
+      const msgEl = document.getElementById('toast-message');
+
+      msgEl.textContent = message;
+      container.classList.remove('hidden');
+
+      box.className = 'rounded-lg border px-4 py-3 text-sm font-medium flex items-center justify-between shadow-sm ';
+      if (type === 'success') {
+        box.className += 'bg-emerald-50 border-emerald-300 text-emerald-900';
+      } else {
+        box.className += 'bg-amber-50 border-amber-300 text-amber-900';
+      }
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        hideToast();
+      }, 4500);
+    }
+
+    function hideToast() {
+      document.getElementById('toast-container').classList.add('hidden');
+    }
+
+    // 4. Citizen Portal: Severity Card Selection
+    function selectSeverity(level, cardElement) {
+      document.getElementById('issue-severity').value = level;
+
+      // Reset all cards
+      document.querySelectorAll('.severity-card').forEach((card) => {
+        card.className =
+          'severity-card border border-slate-200 rounded-lg p-3.5 cursor-pointer hover:border-slate-400 transition-all';
+      });
+
+      // Highlight selected card
+      cardElement.className =
+        'severity-card border-2 border-amber-500 bg-amber-50/60 rounded-lg p-3.5 cursor-pointer transition-all';
+    }
+
+    // 5. Citizen Portal: Interactive Map Pin Placement
+    function placeMapPin(event) {
+      const mapBox = document.getElementById('location-map-box');
+      const rect = mapBox.getBoundingClientRect();
+      const clickX = Math.max(10, Math.min(rect.width - 10, event.clientX - rect.left));
+      const clickY = Math.max(15, Math.min(rect.height - 10, event.clientY - rect.top));
+
+      const percentX = ((clickX / rect.width) * 100).toFixed(1);
+      const percentY = ((clickY / rect.height) * 100).toFixed(1);
+
+      const pin = document.getElementById('map-pin-marker');
+      pin.style.left = `${percentX}%`;
+      pin.style.top = `${percentY}%`;
+
+      // Calculate simulated Raipur latitude/longitude from click position
+      const lat = (21.25 - (clickY / rect.height) * 0.05).toFixed(4);
+      const lng = (81.60 + (clickX / rect.width) * 0.05).toFixed(4);
+      document.getElementById('coord-display').textContent = `${lat}° N, ${lng}° E`;
+    }
+
+    function useCurrentLocation() {
+      // Simulate fetching GPS location on Bhatagaon Road
+      const pin = document.getElementById('map-pin-marker');
+      pin.style.left = '42%';
+      pin.style.top = '58%';
+      document.getElementById('coord-display').textContent = '21.2239° N, 81.6210° E';
+      document.getElementById('issue-location').value = 'Bhatagaon Road (Current GPS Location)';
+      showToast('Current location pinned on Bhatagaon Road.', 'success');
+    }
+
+    // 6. Citizen Portal: Handle Form Submission
+    function handleCitizenSubmit(event) {
+      event.preventDefault();
+
+      const title = document.getElementById('issue-title').value.trim();
+      const type = document.getElementById('issue-type').value;
+      const severity = document.getElementById('issue-severity').value;
+      const location = document.getElementById('issue-location').value.trim();
+      const notes = document.getElementById('issue-notes').value.trim();
+      const coords = document.getElementById('coord-display').textContent;
+
+      if (!title || !type || !location) {
+        showToast('Please fill in the title, problem type, and location.', 'warning');
+        return;
+      }
+
+      const nextNum = 101 + roadReports.length;
+      const newReport = {
+        id: `RD-${nextNum}`,
+        title,
+        type,
+        severity,
+        location,
+        coords,
+        notes: notes || 'Reported via Citizen Portal.',
+        status: 'Reported',
+        assignedWorker: 'Unassigned',
+        reportedAt: 'Just now'
+      };
+      // Add to top of shared list and persist
+      roadReports.unshift(newReport);
+      saveReportsState();
+
+      // Reset inputs
+      document.getElementById('issue-title').value = '';
+      document.getElementById('issue-type').value = '';
+      document.getElementById('issue-notes').value = '';
+
+      renderAllViews();
+      showToast(`Report ${newReport.id} ("${newReport.title}") submitted! It is now visible in the Admin & Worker Portal.`, 'success');
+    }
+
+    // 7. Badge Styling Helpers
+    function getSeverityBadge(severity) {
+      const styles = {
+        Critical: 'bg-red-100 text-red-800 border-red-300',
+        High: 'bg-orange-100 text-orange-800 border-orange-300',
+        Medium: 'bg-amber-100 text-amber-900 border-amber-300',
+        Low: 'bg-emerald-100 text-emerald-800 border-emerald-300'
+      };
+      return `<span class="inline-block text-xs font-semibold px-2.5 py-0.5 rounded border ${styles[severity] || styles.Medium}">${severity}</span>`;
+    }
+
+    function getStatusBadge(status) {
+      const styles = {
+        Reported: 'bg-slate-100 text-slate-800 border-slate-300',
+        Verified: 'bg-blue-100 text-blue-800 border-blue-300',
+        Assigned: 'bg-purple-100 text-purple-800 border-purple-300',
+        'In Progress': 'bg-amber-100 text-amber-900 border-amber-300',
+        Resolved: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+        Closed: 'bg-slate-200 text-slate-600 border-slate-300'
+      };
+      return `<span class="inline-block text-xs font-semibold px-2.5 py-0.5 rounded border ${styles[status] || styles.Reported}">${status}</span>`;
+    }
+
+    // 8. Render Citizen "My Reports" Section
+    function renderCitizenReports() {
+      const container = document.getElementById('citizen-reports-list');
+      const countBadge = document.getElementById('citizen-report-count');
+      countBadge.textContent = `${roadReports.length} Reports`;
+
+      container.innerHTML = roadReports
+        .map(
+          (r) => `
+          <div class="border border-slate-200 rounded-lg p-4 bg-slate-50/70 flex flex-col justify-between gap-2">
+            <div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-mono text-xs font-bold text-slate-500">${r.id} • ${r.reportedAt}</span>
+                ${getStatusBadge(r.status)}
+              </div>
+              <h3 class="font-bold text-slate-900 text-sm mt-1.5">${r.title}</h3>
+              <p class="text-xs text-slate-600 mt-1"><strong>Type:</strong> ${r.type}</p>
+              <p class="text-xs text-slate-600"><strong>Location:</strong> ${r.location} <span class="text-slate-400">(${r.coords})</span></p>
+            </div>
+            <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs">
+              <div>Severity: ${getSeverityBadge(r.severity)}</div>
+              <span class="text-slate-500">Crew: <strong>${r.assignedWorker}</strong></span>
+            </div>
+          </div>
+        `
+        )
+        .join('');
+    }
+
+    // 9. Render Admin & Municipal Worker Portal
+    function renderAdminReports() {
+      const statusFilter = document.getElementById('filter-status').value;
+      const severityFilter = document.getElementById('filter-severity').value;
+
+      // Render 6 Status Summary Cards
+      const summaryContainer = document.getElementById('admin-status-summary');
+      summaryContainer.innerHTML = ALL_STATUSES.map((st) => {
+        const count = roadReports.filter((r) => r.status === st).length;
+        return `
+          <div class="bg-white border border-slate-200 rounded-lg p-3 shadow-xs">
+            <div class="text-xl font-bold text-slate-900">${count}</div>
+            <div class="text-xs font-medium text-slate-600">${st}</div>
+          </div>
+        `;
+      }).join('');
+
+      // Filter list
+      const filtered = roadReports.filter((r) => {
+        const matchStatus = statusFilter === 'All' || r.status === statusFilter;
+        const matchSeverity = severityFilter === 'All' || r.severity === severityFilter;
+        return matchStatus && matchSeverity;
+      });
+
+      const tbody = document.getElementById('admin-reports-tbody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-8 px-4 text-center text-sm text-slate-500">
+              No road maintenance reports match the selected filter.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered
+        .map(
+          (r) => `
+          <tr class="hover:bg-slate-50/90 align-top">
+            <td class="py-3.5 px-4">
+              <div class="font-mono text-xs font-bold text-slate-500">${r.id}</div>
+              <div class="font-semibold text-slate-900 mt-0.5">${r.title}</div>
+              <div class="text-xs text-slate-500 mt-0.5">${r.notes}</div>
+            </td>
+            <td class="py-3.5 px-4 text-xs font-medium text-slate-700">${r.type}</td>
+            <td class="py-3.5 px-4 text-xs text-slate-700">
+              <div class="font-medium">${r.location}</div>
+              <div class="font-mono text-[11px] text-slate-400 mt-0.5">${r.coords}</div>
+            </td>
+            <td class="py-3.5 px-4">${getSeverityBadge(r.severity)}</td>
+            <td class="py-3.5 px-4">
+              <select
+                onchange="updateAssignedWorker('${r.id}', this.value)"
+                aria-label="Assign worker for ${r.id}"
+                class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs bg-white text-slate-800 focus:outline-none focus:border-slate-900"
+              >
+                ${WORKER_OPTIONS.map(
+                  (w) => `<option value="${w}" ${r.assignedWorker === w ? 'selected' : ''}>${w}</option>`
+                ).join('')}
+              </select>
+            </td>
+            <td class="py-3.5 px-4">
+              <select
+                onchange="updateReportStatus('${r.id}', this.value)"
+                aria-label="Update status for ${r.id}"
+                class="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-semibold bg-white text-slate-900 focus:outline-none focus:border-slate-900"
+              >
+                ${ALL_STATUSES.map(
+                  (st) => `<option value="${st}" ${r.status === st ? 'selected' : ''}>${st}</option>`
+                ).join('')}
+              </select>
+            </td>
+          </tr>
+        `
+        )
+        .join('');
+    }
+
+    // Admin Action: Update Report Status
+    function updateReportStatus(reportId, newStatus) {
+      const report = roadReports.find((r) => r.id === reportId);
+      if (!report) return;
+      report.status = newStatus;
+      saveReportsState();
+      renderAllViews();
+      showToast(`Updated ${reportId} status to "${newStatus}".`, 'success');
+    }
+
+    // Admin Action: Assign Municipal Worker / Crew
+    function updateAssignedWorker(reportId, workerName) {
+      const report = roadReports.find((r) => r.id === reportId);
+      if (!report) return;
+      report.assignedWorker = workerName;
+      if (workerName !== 'Unassigned' && (report.status === 'Reported' || report.status === 'Verified')) {
+        report.status = 'Assigned';
+      }
+      saveReportsState();
+      renderAllViews();
+      showToast(`Assigned ${reportId} to ${workerName} (Status: ${report.status}).`, 'success');
+    }
+
+    // 10. Render Labour Portal (Field Repair Tasks)
+    function renderLabourTasks() {
+      const container = document.getElementById('labour-tasks-grid');
+
+      // Show reports that are Assigned, In Progress, or recently Resolved (or Verified ready for pickup)
+      const fieldTasks = roadReports.filter((r) =>
+        ['Assigned', 'In Progress', 'Resolved', 'Verified'].includes(r.status)
+      );
+
+      if (fieldTasks.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-2 bg-white border border-slate-200 rounded-xl p-8 text-center text-sm text-slate-500">
+            No active field repair jobs assigned right now. Assign a worker in the Admin Portal to dispatch a task here.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = fieldTasks
+        .map((task) => {
+          const isCompleted = task.status === 'Resolved' || task.status === 'Closed';
+          const isInProgress = task.status === 'In Progress';
+
+          return `
+            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between space-y-4">
+              <div class="space-y-2.5">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-mono text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded">
+                    JOB ${task.id}
+                  </span>
+                  <div class="flex items-center gap-2">
+                    ${getSeverityBadge(task.severity)}
+                    ${getStatusBadge(task.status)}
+                  </div>
+                </div>
+
+                <h3 class="font-bold text-base text-slate-900">${task.title}</h3>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-1 text-slate-700">
+                  <div><strong>Problem Category:</strong> ${task.type}</div>
+                  <div><strong>Exact Location:</strong> ${task.location}</div>
+                  <div><strong>Coordinates:</strong> <span class="font-mono">${task.coords}</span></div>
+                  <div><strong>Assigned Crew:</strong> ${task.assignedWorker}</div>
+                  <div><strong>Field Notes:</strong> ${task.notes}</div>
+                </div>
+              </div>
+
+              <!-- Field Action Buttons for Labour Personnel -->
+              <div class="pt-2 border-t border-slate-100 flex flex-wrap gap-2">
+                ${
+                  !isCompleted
+                    ? `
+                      <button
+                        onclick="labourUpdateStatus('${task.id}', 'In Progress')"
+                        class="flex-1 text-xs font-semibold py-2.5 px-3 rounded-lg border transition-colors cursor-pointer ${
+                          isInProgress
+                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                            : 'bg-slate-900 hover:bg-slate-800 text-white border-slate-900'
+                        }"
+                      >
+                        ${isInProgress ? '✓ Work In Progress' : 'Mark Work Started'}
+                      </button>
+                      <button
+                        onclick="labourUpdateStatus('${task.id}', 'Resolved')"
+                        class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 px-3 rounded-lg transition-colors cursor-pointer"
+                      >
+                        Mark Repair Completed
+                      </button>
+                    `
+                    : `
+                      <div class="w-full text-center bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold py-2.5 rounded-lg">
+                        ✓ Repair Completed &amp; Logged in System
+                      </div>
+                    `
+                }
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    function labourUpdateStatus(reportId, newStatus) {
+      const report = roadReports.find((r) => r.id === reportId);
+      if (!report) return;
+      if (report.assignedWorker === 'Unassigned') {
+        report.assignedWorker = currentSession ? `${currentSession.name} (${currentSession.subtitle})` : 'Field Crew #1 (On-Site)';
+      }
+      report.status = newStatus;
+      saveReportsState();
+      renderAllViews();
+      showToast(
+        newStatus === 'In Progress'
+          ? `Field crew started repair work on ${reportId}.`
+          : `Repair work completed for ${reportId}! Citizen & Admin portals updated.`,
+        'success'
+      );
+    }
+
+    // Render all portals so state stays 100% synced
+    function renderAllViews() {
+      renderCitizenReports();
+      renderAdminReports();
+      renderLabourTasks();
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateSessionHeaderUI();
+      renderAllViews();
+    });
+  </script>
+</body>
+</html>
